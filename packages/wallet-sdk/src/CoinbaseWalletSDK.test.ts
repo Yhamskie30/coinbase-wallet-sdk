@@ -1,3 +1,4 @@
+// eslint-disable-next-line max-classes-per-file
 import { waitFor } from "@testing-library/preact";
 
 import {
@@ -75,7 +76,7 @@ describe("CoinbaseWalletSDK", () => {
         const url = new URL(qrUrl);
 
         expect(url.hostname).toEqual("www.walletlink.org");
-        expect(url.hash.split("=")).toHaveLength(5);
+        expect(url.hash.split("=")).toHaveLength(6);
       });
 
       test("@getCoinbaseWalletLogo", () => {
@@ -154,6 +155,7 @@ describe("CoinbaseWalletSDK", () => {
       }
 
       const mockCipherProvider = new MockCipherProviderClass({
+        chainId: 1,
         jsonRpcUrl: "url",
         overrideIsMetaMask: false,
         relayEventManager: new WalletSDKRelayEventManager(),
@@ -181,6 +183,36 @@ describe("CoinbaseWalletSDK", () => {
           .mockImplementation(() => "setAppInfo");
         coinbaseWalletSDK2.setAppInfo("cipher", "http://cipher-image.png");
         expect(relaySetAppInfoMock).not.toBeCalled();
+      });
+    });
+
+    describe("coinbase browser iframe", () => {
+      class MockCoinbaseBrowserProvider extends MockProviderClass {
+        public isCoinbaseBrowser = true;
+
+        constructor(opts: Readonly<CoinbaseWalletProviderOptions>) {
+          super(opts);
+        }
+      }
+
+      const mockCoinbaseBrowserProvider = new MockCoinbaseBrowserProvider({
+        chainId: 1,
+        jsonRpcUrl: "url",
+        overrideIsMetaMask: false,
+        relayEventManager: new WalletSDKRelayEventManager(),
+        relayProvider: jest.fn(),
+        storage: new ScopedLocalStorage("-walletlink"),
+      });
+
+      beforeAll(() => {
+        window.ethereum = undefined;
+        window.top!.ethereum = mockCoinbaseBrowserProvider;
+      });
+
+      test("@makeWeb3Provider", () => {
+        expect(coinbaseWalletSDK2.makeWeb3Provider()).toEqual(
+          mockCoinbaseBrowserProvider,
+        );
       });
     });
   });
